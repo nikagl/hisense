@@ -443,7 +443,7 @@ class TVAuthenticator:
         if not self.authenticated:
             if debug:
                 logging.info("NOT Authenticated")
-            self.authenticate(client)
+            auth.generate_creds()
 
         client.loop_stop()
         client.disconnect()
@@ -794,7 +794,7 @@ if __name__ == "__main__":
         elif action == "A" or action == "AUTHENTICATE":
             # Delete credentials
             auth.generate_creds()
-            print("Credentials deleted.")
+            print("Credentials authenticated.")
 
         elif action == "H" or action == "HELP":
             # Help
