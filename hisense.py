@@ -10,11 +10,13 @@ import keyboard
 import argparse
 import os
 import sys
+import random
 
 script_directory = os.path.dirname(os.path.abspath(sys.argv[0]))
 
 # Configuration
 tv_ip = "192.168.178.134"
+random_mac = True # Set to False if you want to use a specific MAC address
 certfile = os.path.join(script_directory, "./rcm_certchain_pem.cer")
 keyfile = os.path.join(script_directory, "./rcm_pem_privkey.pkcs8")
 credentialsfile = os.path.join(script_directory, "credentials.json") 
@@ -204,6 +206,11 @@ class TVAuthenticator:
 
         return credentials["accesstoken"]
 
+    def random_mac_address(self):
+        # A MAC address has 6 pairs of hexadecimal digits
+        mac = [random.randint(0x00, 0xFF) for _ in range(6)]
+        return ':'.join(f'{octet:02x}' for octet in mac)
+
     # Check and refresh the token if needed
     def check_and_refresh_token(self):
         current_time = time.time()
@@ -238,7 +245,13 @@ class TVAuthenticator:
     # Define the hashes, username, password and client_id
     def define_hashes(self):
         self.timestamp = int(time.time())
-        mac = ':'.join(re.findall('..', '%012x' % uuid.getnode())).upper()
+
+        if random_mac:
+            # generate a random mac-address
+            mac = self.random_mac_address()
+        else:
+            mac = ':'.join(re.findall('..', '%012x' % uuid.getnode())).upper()
+
         if debug:
             logging.info(f'MAC Address: {mac}')
 
