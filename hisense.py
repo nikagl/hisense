@@ -596,7 +596,7 @@ class TVAuthenticator:
                     app_id = app["appId"]
                     app_url = app["url"]
                     app_name = app["name"]
-                break
+                    break
 
             if app_id is None or app_url is None:
                 print("Failed to find app in app list.")
