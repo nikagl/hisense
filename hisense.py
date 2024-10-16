@@ -172,12 +172,22 @@ class TVAuthenticator:
         client.connect_async(tv_ip, 36669, 60)
         client.loop_start()
 
-        self.wait_for_message(lambda: not client.connected_flag)
+        self.wait_for_message(lambda: not client.connected_flag and not client.bad_connection_flag)
+        if client.bad_connection_flag:
+            logging.error("Failed to connect to MQTT broker. Exiting...")
+            client.loop_stop()
+            client.disconnect()
+            return
 
         client.subscribe(self.topicMobiBasepath + 'platform_service/data/tokenissuance')
         client.publish(f"/remoteapp/tv/platform_service/{self.client_id}/data/gettoken", json.dumps({"refreshtoken": self.refreshtoken}))
 
-        self.wait_for_message(lambda: self.tokenissuance is None)
+        self.wait_for_message(lambda: self.tokenissuance is None or client.bad_connection_flag)
+        if client.bad_connection_flag:
+            logging.error("Failed to connect to MQTT broker. Exiting...")
+            client.loop_stop()
+            client.disconnect()
+            return
 
         credentials = json.loads(self.tokenissuance.payload.decode())
         credentials.update({"client_id": self.client_id, "username": self.username, "password": self.password})
@@ -298,7 +308,12 @@ class TVAuthenticator:
         client.connect_async(tv_ip, 36669, 60)
         client.loop_start()
 
-        self.wait_for_message(lambda: not client.connected_flag)
+        self.wait_for_message(lambda: not client.connected_flag and not client.bad_connection_flag)
+        if client.bad_connection_flag:
+            logging.error("Failed to connect to MQTT broker. Exiting...")
+            client.loop_stop()
+            client.disconnect()
+            return
 
         client.subscribe([
             (self.topicBrcsBasepath + 'ui_service/state', 0),
@@ -312,7 +327,13 @@ class TVAuthenticator:
         if debug:
             logging.info('Publishing message to actions/vidaa_app_connect...')
         client.publish(self.topicTVUIBasepath + "actions/vidaa_app_connect", '{"app_version":2,"connect_result":0,"device_type":"Mobile App"}')
-        self.wait_for_message(lambda: self.authentication_payload is None)
+
+        self.wait_for_message(lambda: self.authentication_payload is None or client.bad_connection_flag)
+        if client.bad_connection_flag:
+            logging.error("Failed to connect to MQTT broker. Exiting...")
+            client.loop_stop()
+            client.disconnect()
+            return
 
         if self.authentication_payload.payload.decode() != '""':
             logging.error('Problems with the authentication message!')
@@ -328,7 +349,12 @@ class TVAuthenticator:
             auth_num = input("Enter the four digits displayed on your TV: ")
             client.publish(self.topicTVUIBasepath + "actions/authenticationcode", f'{{"authNum":{auth_num}}}')
 
-            self.wait_for_message(lambda: self.authentication_code_payload is None)
+            self.wait_for_message(lambda: self.authentication_code_payload is None or client.bad_connection_flag)
+            if client.bad_connection_flag:
+                logging.error("Failed to connect to MQTT broker. Exiting...")
+                client.loop_stop()
+                client.disconnect()
+                return
 
             if json.loads(self.authentication_code_payload.payload.decode()) != {"result": 1, "info": ""}:
                 if debug:
@@ -345,7 +371,12 @@ class TVAuthenticator:
         client.subscribe(self.topicBrcsBasepath + 'ui_service/data/hotelmodechange')
         client.subscribe(self.topicMobiBasepath + 'platform_service/data/tokenissuance')
 
-        self.wait_for_message(lambda: self.tokenissuance is None)
+        self.wait_for_message(lambda: self.tokenissuance is None or client.bad_connection_flag)
+        if client.bad_connection_flag:
+            logging.error("Failed to connect to MQTT broker. Exiting...")
+            client.loop_stop()
+            client.disconnect()
+            return
 
         credentials = json.loads(self.tokenissuance.payload.decode())
         credentials.update({"client_id": self.client_id, "username": self.username, "password": self.password})
@@ -436,7 +467,12 @@ class TVAuthenticator:
         client.connect_async(tv_ip, 36669, 60)
         client.loop_start()
 
-        self.wait_for_message(lambda: not client.connected_flag)
+        self.wait_for_message(lambda: not client.connected_flag and not client.bad_connection_flag)
+        if client.bad_connection_flag:
+            logging.error("Failed to connect to MQTT broker. Exiting...")
+            client.loop_stop()
+            client.disconnect()
+            return
 
         if debug:
             logging.info(f"Subscribing for {subscribe_topic}")
@@ -450,8 +486,12 @@ class TVAuthenticator:
             logging.info(f"Publishing message to {publish_topic}")
         client.publish(publish_topic, None)
 
-        self.wait_for_message(lambda: self.info is None)
-        # self.wait_for_message(lambda: True is True)
+        self.wait_for_message(lambda: self.info is None or client.bad_connection_flag)
+        if client.bad_connection_flag:
+            logging.error("Failed to connect to MQTT broker. Exiting...")
+            client.loop_stop()
+            client.disconnect()
+            return None
 
         if not self.authenticated:
             if debug:
@@ -480,7 +520,12 @@ class TVAuthenticator:
         client.connect_async(tv_ip, 36669, 60)
         client.loop_start()
 
-        self.wait_for_message(lambda: not client.connected_flag)
+        self.wait_for_message(lambda: not client.connected_flag and not client.bad_connection_flag)
+        if client.bad_connection_flag:
+            logging.error("Failed to connect to MQTT broker. Exiting...")
+            client.loop_stop()
+            client.disconnect()
+            return
 
         if debug:
             logging.info(f"Publishing {command} command to {publish_topic}")
@@ -582,25 +627,24 @@ class TVAuthenticator:
         if debug:
             logging.info(f"Launching app {app_name}...")
 
+        app_id = None
+        app_url = None
+
         if not app_list:
             app_list = self.get_app_list()
             if not app_list:
                 print("Failed to get app list.")
                 return False
 
-            app_id = None
-            app_url = None
+        for app in app_list:
+            if app["name"].upper() == app_name.upper():
+                app_id = app["appId"]
+                app_url = app["url"]
+                app_name = app["name"]
 
-            for app in app_list:
-                if app["name"].upper() == app_name.upper():
-                    app_id = app["appId"]
-                    app_url = app["url"]
-                    app_name = app["name"]
-                    break
-
-            if app_id is None or app_url is None:
-                print("Failed to find app in app list.")
-                return False
+        if app_id is None or app_url is None:
+            print("Failed to find app in app list.")
+            return False
             
         tv_state = auth.get_tv_state()
         if tv_state:
@@ -640,6 +684,8 @@ class TVAuthenticator:
 
 # Main function
 if __name__ == "__main__":
+    print("Initializing...")
+    logging.info(f"Initializing")
     # Initialize the TVAuthenticator class
     auth = TVAuthenticator()
 
@@ -735,7 +781,7 @@ if __name__ == "__main__":
         elif action == "6" or action == "CHANGEVOLUME":
             # Change Volume
             if not args.parameter:
-                volume = get_volume()
+                volume = auth.get_volume()
                 if volume:
                     print(f"Volume: \n{json.dumps(volume, indent=4)}")
                     volume = input("Enter the volume level (0-100): ")
