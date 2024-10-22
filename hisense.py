@@ -356,7 +356,9 @@ class TVAuthenticator:
                 client.disconnect()
                 return
 
-            if json.loads(self.authentication_code_payload.payload.decode()) != {"result": 1, "info": ""}:
+            payload = json.loads(self.authentication_code_payload.payload.decode())
+            if not 'result' in payload or payload['result'] != 1:
+            # if json.loads(self.authentication_code_payload.payload.decode()) != {"result": 1, "info": ""}:
                 if debug:
                     logging.error('Problems with the authentication message!')
                     logging.error(self.authentication_code_payload.payload)
