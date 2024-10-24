@@ -70,7 +70,7 @@ class TVAuthenticator:
                 logging.info("Connected to MQTT broker")
         else:
             logging.error(f"Bad connection. Returned code: {rc}")
-            client.bad_connection_flag = True
+            client.cancel_loop = True
 
     # Action when message received
     def on_message(self, client, userdata, msg):
@@ -93,6 +93,7 @@ class TVAuthenticator:
     def on_disconnect(self, client, userdata, rc):
         if debug:
             logging.info(f"Disconnected. Reason: {rc}")
+        client.cancel_loop = True
 
     # Action when authentication message received
     def on_authentication(self, mosq, obj, msg):
@@ -155,7 +156,7 @@ class TVAuthenticator:
         client.enable_logger()
 
         client.connected_flag = False
-        client.bad_connection_flag = False
+        client.cancel_loop = False
 
         return client
 
@@ -172,8 +173,8 @@ class TVAuthenticator:
         client.connect_async(tv_ip, 36669, 60)
         client.loop_start()
 
-        self.wait_for_message(lambda: not client.connected_flag and not client.bad_connection_flag)
-        if client.bad_connection_flag:
+        self.wait_for_message(lambda: not client.connected_flag and not client.cancel_loop)
+        if client.cancel_loop:
             logging.error("Failed to connect to MQTT broker. Exiting...")
             client.loop_stop()
             client.disconnect()
@@ -182,8 +183,8 @@ class TVAuthenticator:
         client.subscribe(self.topicMobiBasepath + 'platform_service/data/tokenissuance')
         client.publish(f"/remoteapp/tv/platform_service/{self.client_id}/data/gettoken", json.dumps({"refreshtoken": self.refreshtoken}))
 
-        self.wait_for_message(lambda: self.tokenissuance is None or client.bad_connection_flag)
-        if client.bad_connection_flag:
+        self.wait_for_message(lambda: self.tokenissuance is None or client.cancel_loop)
+        if client.cancel_loop:
             logging.error("Failed to connect to MQTT broker. Exiting...")
             client.loop_stop()
             client.disconnect()
@@ -308,8 +309,8 @@ class TVAuthenticator:
         client.connect_async(tv_ip, 36669, 60)
         client.loop_start()
 
-        self.wait_for_message(lambda: not client.connected_flag and not client.bad_connection_flag)
-        if client.bad_connection_flag:
+        self.wait_for_message(lambda: not client.connected_flag and not client.cancel_loop)
+        if client.cancel_loop:
             logging.error("Failed to connect to MQTT broker. Exiting...")
             client.loop_stop()
             client.disconnect()
@@ -328,8 +329,8 @@ class TVAuthenticator:
             logging.info('Publishing message to actions/vidaa_app_connect...')
         client.publish(self.topicTVUIBasepath + "actions/vidaa_app_connect", '{"app_version":2,"connect_result":0,"device_type":"Mobile App"}')
 
-        self.wait_for_message(lambda: self.authentication_payload is None or client.bad_connection_flag)
-        if client.bad_connection_flag:
+        self.wait_for_message(lambda: self.authentication_payload is None or client.cancel_loop)
+        if client.cancel_loop:
             logging.error("Failed to connect to MQTT broker. Exiting...")
             client.loop_stop()
             client.disconnect()
@@ -349,8 +350,8 @@ class TVAuthenticator:
             auth_num = input("Enter the four digits displayed on your TV: ")
             client.publish(self.topicTVUIBasepath + "actions/authenticationcode", f'{{"authNum":{auth_num}}}')
 
-            self.wait_for_message(lambda: self.authentication_code_payload is None or client.bad_connection_flag)
-            if client.bad_connection_flag:
+            self.wait_for_message(lambda: self.authentication_code_payload is None or client.cancel_loop)
+            if client.cancel_loop:
                 logging.error("Failed to connect to MQTT broker. Exiting...")
                 client.loop_stop()
                 client.disconnect()
@@ -373,8 +374,8 @@ class TVAuthenticator:
         client.subscribe(self.topicBrcsBasepath + 'ui_service/data/hotelmodechange')
         client.subscribe(self.topicMobiBasepath + 'platform_service/data/tokenissuance')
 
-        self.wait_for_message(lambda: self.tokenissuance is None or client.bad_connection_flag)
-        if client.bad_connection_flag:
+        self.wait_for_message(lambda: self.tokenissuance is None or client.cancel_loop)
+        if client.cancel_loop:
             logging.error("Failed to connect to MQTT broker. Exiting...")
             client.loop_stop()
             client.disconnect()
@@ -469,8 +470,8 @@ class TVAuthenticator:
         client.connect_async(tv_ip, 36669, 60)
         client.loop_start()
 
-        self.wait_for_message(lambda: not client.connected_flag and not client.bad_connection_flag)
-        if client.bad_connection_flag:
+        self.wait_for_message(lambda: not client.connected_flag and not client.cancel_loop)
+        if client.cancel_loop:
             logging.error("Failed to connect to MQTT broker. Exiting...")
             client.loop_stop()
             client.disconnect()
@@ -488,8 +489,8 @@ class TVAuthenticator:
             logging.info(f"Publishing message to {publish_topic}")
         client.publish(publish_topic, None)
 
-        self.wait_for_message(lambda: self.info is None or client.bad_connection_flag)
-        if client.bad_connection_flag:
+        self.wait_for_message(lambda: self.info is None or client.cancel_loop)
+        if client.cancel_loop:
             logging.error("Failed to connect to MQTT broker. Exiting...")
             client.loop_stop()
             client.disconnect()
@@ -522,8 +523,8 @@ class TVAuthenticator:
         client.connect_async(tv_ip, 36669, 60)
         client.loop_start()
 
-        self.wait_for_message(lambda: not client.connected_flag and not client.bad_connection_flag)
-        if client.bad_connection_flag:
+        self.wait_for_message(lambda: not client.connected_flag and not client.cancel_loop)
+        if client.cancel_loop:
             logging.error("Failed to connect to MQTT broker. Exiting...")
             client.loop_stop()
             client.disconnect()
