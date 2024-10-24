@@ -121,20 +121,31 @@ class TVAuthenticator:
 
     # Wait for a message (condition is a lambda function that returns True or False)
     def wait_for_message(self, condition, check_interval=1, debug=False):
-        time.sleep(1)  # Initial delay to prevent false negatives
+        initial_start_time = time.time()
+        feedback_delay = initial_start_time
+        timeout = 60  # Maximum wait time in seconds
         print("Waiting for message... (press and hold escape to cancel waiting)")
-        start_time = time.time()
+        time.sleep(1)  # Initial delay to prevent false negatives
+
         print("Waiting...", end='', flush=True)
-        
         while condition():
+            # check for keyboard press
             if keyboard.is_pressed('esc'):
                 print("\nEscape pressed. Exiting...")
                 break
 
+            # only add a dot every 3 seconds
             current_time = time.time()
-            if current_time - start_time >= 3:
+            if current_time - feedback_delay >= 3:
                 print(".", end='', flush=True)
-                start_time = current_time
+                feedback_delay = current_time
+
+            # check if timeout is reached
+            if current_time - initial_start_time >= timeout:
+                print("\nTimeout reached. Exiting...")
+                break
+
+            # wait a bit before checking again
             time.sleep(check_interval)
         
         print("")
