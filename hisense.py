@@ -599,6 +599,23 @@ class TVAuthenticator:
         self.send_command(power_cycle_publish, power_cycle_command)
         return True
 
+    # Send KEY to the TV
+    def send_key(self,key):
+        if debug:
+            logging.info("send key to TV..."+key)
+        tv_state = auth.get_tv_state()
+        if tv_state:
+            if "statetype" in tv_state and tv_state["statetype"] == "fake_sleep_0":
+                logging.info("TV is off. Not sending key...")
+                return False
+            else:
+                send_key_publish = self.topicRemoBasepath + "actions/sendkey"
+                self.send_command(send_key_publish, key)
+                return True
+        else:
+            logging.error("Failed to get TV state.")
+            return False
+
     # Change the source of the TV
     def change_source(self, source_id):
         if debug:
@@ -683,7 +700,8 @@ class TVAuthenticator:
         print("5. Get Volume, from command line: --action getvolume")
         print("6. Change Volume, from command line: --action changevolume --parameter <volume>")
         print("7. Get App List, from command line: --action getapplist")
-        print("8. Launch App, from command line: --action launchapp --parameter <app_name>\n")
+        print("8. Launch App, from command line: --action launchapp --parameter <app_name>")
+        print("9. Send key, from command line: --action sendkey --parameter <key>\n")
 
         print("C. Show Credentials, from command line: --action showcredentials")
         print("R. Refresh Token, from command line: --action refreshtoken")
@@ -705,7 +723,7 @@ if __name__ == "__main__":
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Hisense TV Control')
-    parser.add_argument('--action', type=str, help='Action to perform', choices=['getstate', 'powercycle', 'poweron', 'poweroff', 'getsourcelist', 'changesource', 'getvolume', 'changevolume', 'getapplist', 'launchapp', 'showcredentials', 'forcerefresh', 'refreshtoken', 'save', 'load', 'authenticate', 'help', 'exit'])
+    parser.add_argument('--action', type=str, help='Action to perform', choices=['getstate', 'powercycle', 'poweron', 'poweroff', 'getsourcelist', 'changesource', 'getvolume', 'changevolume', 'getapplist', 'launchapp', 'sendkey', 'showcredentials', 'forcerefresh', 'refreshtoken', 'save', 'load', 'authenticate', 'help', 'exit'])
     parser.add_argument('--parameter', type=str, help='Parameter for the action')
     parser.add_argument('--debug', type=str, help='Set debug mode on or off (True/False)', choices=['True', 'False'], default='False')
     args = parser.parse_args()
@@ -839,6 +857,18 @@ if __name__ == "__main__":
                 print(f"App launched: {app_name}")
             else:
                 print("Failed to launch app.")
+
+        elif action == "9" or action == "SENDKEY":
+            # Send key
+            if not args.parameter:
+                key = input("Enter the key: ")
+            else:
+                key = args.parameter
+            key_sent = auth.send_key(key)
+            if key_sent:
+                print(f"Key sent {key}")
+            else:
+                print(f"Failed to sent key {key}")
 
         elif action == "C" or action == "SHOWCREDENTIALS":
             # Show credentials
