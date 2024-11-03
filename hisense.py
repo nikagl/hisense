@@ -866,9 +866,51 @@ if __name__ == "__main__":
         elif action == "9" or action == "SENDKEY":
             # Send key
             if not args.parameter:
+                print(f"Known keys:\n")
+
+                print(f"Navigation:")
+                print(f"KEY_POWER")
+                print(f"KEY_UP")
+                print(f"KEY_DOWN")
+                print(f"KEY_LEFT")
+                print(f"KEY_RIGHT")
+                print(f"KEY_RETURNS (Back)")
+                print(f"KEY_MENU")
+                print(f"KEY_EXIT")
+                print(f"KEY_OK")
+                print(f"KEY_HOME\n")
+
+                print(f"Volume:")
+                print(f"KEY_VOLUMEUP")
+                print(f"KEY_VOLUMEDOWN")
+                print(f"KEY_MUTE\n")
+
+                print(f"Content interaction:")
+                print(f"KEY_FORWARDS (fastforward)")
+                print(f"KEY_BACK (rewind)")
+                print(f"KEY_STOP")
+                print(f"KEY_PLAY")
+                print(f"KEY_PAUSE")
+                print(f"KEY_0")
+                print(f"KEY_1")
+                print(f"KEY_2")
+                print(f"KEY_3")
+                print(f"KEY_4")
+                print(f"KEY_5")
+                print(f"KEY_6")
+                print(f"KEY_7")
+                print(f"KEY_8")
+                print(f"KEY_9")
+                print(f"KEY_SUBTITLE\n")
+
                 key = input("Enter the key: ")
             else:
                 key = args.parameter
+
+            if key == "":
+                print("No key entered.")
+                continue
+            
             key_sent = auth.send_key(key)
             if key_sent:
                 print(f"Key sent {key}")
