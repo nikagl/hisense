@@ -17,11 +17,14 @@ script_directory = os.path.dirname(os.path.abspath(sys.argv[0]))
 # Configuration
 tv_ip = "192.168.178.134"
 random_mac = True # Set to False if you want to use a specific MAC address
-certfile = os.path.join(script_directory, "./rcm_certchain_pem.cer")
-keyfile = os.path.join(script_directory, "./rcm_pem_privkey.pkcs8")
+# certfile = os.path.join(script_directory, "./rcm_certchain_pem.cer")
+# keyfile = os.path.join(script_directory, "./rcm_pem_privkey.pkcs8")
+certfile = os.path.join(script_directory, "./vidaa_cert.cer")
+keyfile = os.path.join(script_directory, "./vidaa_cert.pkcs8")
 credentialsfile = os.path.join(script_directory, "credentials.json") 
 check_interval = 0.1
 debug = True
+new_auth = False
 
 # Logging setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -283,7 +286,11 @@ class TVAuthenticator:
         third_hash = self.string_to_hash(f"his{last_digit_of_cross_sum}h*i&s%e!r^v0i1c9")
         fourth_hash = self.string_to_hash(f"{self.timestamp}${third_hash[:6]}")
 
-        self.username = f"his${self.timestamp}"
+        if new_auth:
+            self.username = f"his${self.timestamp^6239759785777146216}"
+        else:
+            self.username = f"his${self.timestamp}"
+
         self.password = fourth_hash
 
         if debug:
@@ -703,7 +710,8 @@ class TVAuthenticator:
         print("8. Launch App, from command line: --action launchapp --parameter <app_name>")
         print("9. Send key, from command line: --action sendkey --parameter <key>\n")
 
-        print("D. Toggle Debug Mode, from command line: --debug True/False\n")
+        print("D. Toggle Debug Mode, from command line: --debug True/False")
+        print("N. New Authentication toggle, from command line: --newauth True/False\n")
 
         print("A. Authenticate, from command line: --action authenticate")
         print("C. Show Credentials, from command line: --action showcredentials")
@@ -729,6 +737,7 @@ if __name__ == "__main__":
     parser.add_argument('--action', type=str, help='Action to perform', choices=['getstate', 'powercycle', 'poweron', 'poweroff', 'getsourcelist', 'changesource', 'getvolume', 'changevolume', 'getapplist', 'launchapp', 'sendkey', 'showcredentials', 'forcerefresh', 'refreshtoken', 'save', 'load', 'authenticate', 'help', 'exit'])
     parser.add_argument('--parameter', type=str, help='Parameter for the action')
     parser.add_argument('--debug', type=str, help='Set debug mode on or off (True/False)', choices=['True', 'False'], default='False')
+    parser.add_argument('--newauth', type=str, help='Set new authentication on or off (True/False)', choices=['True', 'False'], default='False')
     args = parser.parse_args()
 
     # Set debug mode
@@ -736,6 +745,12 @@ if __name__ == "__main__":
         debug = True
     elif args.debug == "False":
         debug = False
+
+    # Set new authentication mode
+    if args.newauth == "True":
+        new_auth = True
+    elif args.newauth == "False":
+        new_auth = False
 
     # Load or generate credentials
     auth.load_or_generate_creds()
@@ -921,7 +936,11 @@ if __name__ == "__main__":
             # Show credentials
             auth.show_credentials()
 
-        elif action == "D" or action == "DEBUG":
+        elif action == "N":
+            # Toggle new authentication (newauth = True/False)
+            new_auth = not new_auth
+
+        elif action == "D":
             # Toggle debug mode
             debug = not debug
             print(f"Debug mode: {debug}")
