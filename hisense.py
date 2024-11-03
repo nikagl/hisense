@@ -703,12 +703,15 @@ class TVAuthenticator:
         print("8. Launch App, from command line: --action launchapp --parameter <app_name>")
         print("9. Send key, from command line: --action sendkey --parameter <key>\n")
 
+        print("D. Toggle Debug Mode, from command line: --debug True/False\n")
+
+        print("A. Authenticate, from command line: --action authenticate")
         print("C. Show Credentials, from command line: --action showcredentials")
         print("R. Refresh Token, from command line: --action refreshtoken")
-        print("F. Force Refresh Token, from command line: --action forcerefresh")
+        print("F. Force Refresh Token, from command line: --action forcerefresh\n")
+
         print("S. Save Credentials, from command line: --action save")
-        print("L. Load Credentials, from command line: --action load")
-        print("A. Authenticate, from command line: --action authenticate\n")
+        print("L. Load Credentials, from command line: --action load\n")
 
         print("H. Help, from command line: --action help\n")
 
@@ -753,6 +756,8 @@ if __name__ == "__main__":
             print("\nChoose an action:\n")
             auth.show_help()
             action = input("Action: ")
+            # clear the screen
+            os.system('cls' if os.name == 'nt' else 'clear')
         else:
             action = args.action
 
@@ -873,6 +878,11 @@ if __name__ == "__main__":
         elif action == "C" or action == "SHOWCREDENTIALS":
             # Show credentials
             auth.show_credentials()
+
+        elif action == "D" or action == "DEBUG":
+            # Toggle debug mode
+            debug = not debug
+            print(f"Debug mode: {debug}")
 
         elif action == "F" or action == "FORCEREFRESH":
             # Refresh token
