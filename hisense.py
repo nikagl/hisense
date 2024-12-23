@@ -22,9 +22,11 @@ random_mac = True # Set to False if you want to use a specific MAC address
 certfile = os.path.join(script_directory, "./vidaa_cert.cer")
 keyfile = os.path.join(script_directory, "./vidaa_cert.pkcs8")
 credentialsfile = os.path.join(script_directory, "credentials.json") 
+auth_numfile = "./authcode.txt"  # Temporary file to store the code
 check_interval = 0.1
 debug = True
 new_auth = False
+file_auth = False
 
 # Logging setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -365,7 +367,14 @@ class TVAuthenticator:
 
         authsuccess = False
         while not authsuccess:
-            auth_num = input("Enter the four digits displayed on your TV: ")
+            if file_auth:
+                while not os.path.exists(auth_numfile):
+                    time.sleep(1)
+                with open(auth_numfile, 'r') as file:
+                    auth_num = file.read().strip()
+            else:
+                auth_num = input("Enter the four digits displayed on your TV: ")
+
             client.publish(self.topicTVUIBasepath + "actions/authenticationcode", f'{{"authNum":{auth_num}}}')
 
             self.wait_for_message(lambda: self.authentication_code_payload is None or client.cancel_loop)
@@ -714,6 +723,7 @@ class TVAuthenticator:
         print("N. New Authentication toggle, from command line: --newauth True/False\n")
 
         print("A. Authenticate, from command line: --action authenticate")
+        print("W. Wait for file authentication, from command line: --action wait")
         print("C. Show Credentials, from command line: --action showcredentials")
         print("R. Refresh Token, from command line: --action refreshtoken")
         print("F. Force Refresh Token, from command line: --action forcerefresh\n")
@@ -738,6 +748,7 @@ if __name__ == "__main__":
     parser.add_argument('--parameter', type=str, help='Parameter for the action')
     parser.add_argument('--debug', type=str, help='Set debug mode on or off (True/False)', choices=['True', 'False'], default='False')
     parser.add_argument('--newauth', type=str, help='Set new authentication on or off (True/False)', choices=['True', 'False'], default='False')
+    parser.add_argument('--wait', type=str, help='Wait for file on authentication (True/False)', choices=['True', 'False'], default='False')
     args = parser.parse_args()
 
     # Set debug mode
@@ -751,6 +762,12 @@ if __name__ == "__main__":
         new_auth = True
     elif args.newauth == "False":
         new_auth = False
+
+    # Set new authentication mode
+    if args.wait == "True":
+        file_auth = True
+    elif args.wait == "False":
+        file_auth = False
 
     # Load or generate credentials
     auth.load_or_generate_creds()
@@ -939,6 +956,10 @@ if __name__ == "__main__":
         elif action == "N":
             # Toggle new authentication (newauth = True/False)
             new_auth = not new_auth
+
+        elif action == "W":
+            # Toggle wait for file authentication (wait = True/False)
+            file_auth = not file_auth
 
         elif action == "D":
             # Toggle debug mode
