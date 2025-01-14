@@ -107,10 +107,16 @@ class TVAuthenticator:
         self.authentication_payload = msg
 
     # Action when authentication code message received
-    def on_authentication_code(self, mosq, obj, msg):
+    def on_authenticationcode(self, mosq, obj, msg):
         if debug:
             logging.info(f"Authentication code message received: {msg.payload.decode('utf-8')} on topic {msg.topic}")
         self.authentication_code_payload = msg
+
+    # Action when hotel mode change message received
+    def on_hotelmodechange(self, mosq, obj, msg):
+        if debug:
+            logging.info(f"Hotel mode change message received: {msg.payload.decode('utf-8')} on topic {msg.topic}")
+        self.hotelmodechange = msg
 
     # Action when token issuance message received
     def on_tokenissuance(self, mosq, obj, msg):
@@ -322,8 +328,8 @@ class TVAuthenticator:
         if debug:
             logging.info(f"Adding callback messages for authentication...")
         client.message_callback_add(self.topicMobiBasepath + 'ui_service/data/authentication', self.on_authentication)
-        client.message_callback_add(self.topicMobiBasepath + 'ui_service/data/authenticationcode', self.on_authentication_code)
-        client.message_callback_add(self.topicBrcsBasepath + 'ui_service/data/hotelmodechange', self.on_message)
+        client.message_callback_add(self.topicMobiBasepath + 'ui_service/data/authenticationcode', self.on_authenticationcode)
+        client.message_callback_add(self.topicBrcsBasepath + 'ui_service/data/hotelmodechange', self.on_hotelmodechange)
         client.message_callback_add(self.topicMobiBasepath + 'platform_service/data/tokenissuance', self.on_tokenissuance)
 
         client.connect_async(tv_ip, 36669, 60)
@@ -375,6 +381,7 @@ class TVAuthenticator:
             else:
                 auth_num = input("Enter the four digits displayed on your TV: ")
 
+            logging.info(f"Authentication code from file: {auth_num}")
             client.publish(self.topicTVUIBasepath + "actions/authenticationcode", f'{{"authNum":{auth_num}}}')
 
             self.wait_for_message(lambda: self.authentication_code_payload is None or client.cancel_loop)
@@ -636,20 +643,29 @@ class TVAuthenticator:
     def change_source(self, source_id):
         if debug:
             logging.info(f"Changing source to {source_id}...")
-        tv_state = auth.get_tv_state()
-        if tv_state:
-            if "statetype" in tv_state and tv_state["statetype"] == "fake_sleep_0":
-                logging.info("TV is off. Not changing source...")
-                return False
+        for _ in range(50):  # Try this for 10 seconds
+            tv_state = auth.get_tv_state()
+            if tv_state:
+                if "statetype" in tv_state and tv_state["statetype"] == "fake_sleep_0":
+                    logging.info("TV is off. Powering on...")
+                    command_sent = auth.power_cycle_tv()
+                    if command_sent:
+                        print("Power cycle command sent.")
+                        time.sleep(0.4)
+                    else:
+                        print("Failed to send power cycle command.")
+                        return False
+                else:
+                    logging.info("TV is on. Changing source...")
+                    change_source_publish = self.topicTVUIBasepath + "actions/changesource"
+                    change_source_command = json.dumps({"sourceid": source_id})
+                    self.send_command(change_source_publish, change_source_command)
+                    return True
             else:
-                logging.info("TV is on. Changing source...")
-                change_source_publish = self.topicTVUIBasepath + "actions/changesource"
-                change_source_command = json.dumps({"sourceid": source_id})
-                self.send_command(change_source_publish, change_source_command)
-                return True
-        else:
-            logging.error("Failed to get TV state.")
-            return False
+                logging.error("Failed to get TV state.")
+                return False
+        logging.error("Failed to power on the TV after two attempts.")
+        return False
 
     # Change the volume of the TV
     def change_volume(self, volume):
