@@ -1,3 +1,8 @@
+** I have discontinued this as Home Assistant now works with Homekit and the Homekit integration of the Hisense TV works sufficiently for me to turn on / off the TV and switch HDMI channels and such 👍 **
+
+![Image](https://github.com/user-attachments/assets/c1023b79-163c-4392-a2aa-7c0bbb9ed30a)
+
+
 # Communication script for Hisense with token access authentication
 
 Based on information found in "Identifier rejected on 55U7KQ" topic:
